@@ -1,0 +1,1 @@
+Log files will be generated into this directory and serve as a high-level overview of the bot's activities during a session.
