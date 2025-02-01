@@ -6,10 +6,6 @@ import json
 import time
 import re
 
-## GLOBAL DEBUG FLAG ##
-debug_mode = False
-#######################
-
 # logging configuration
 def configure_logger():
     logfile_path = 'logs'
@@ -17,14 +13,17 @@ def configure_logger():
         os.makedirs(logfile_path)
     logfile_timestamp = int(datetime.datetime.now().timestamp())
     logfile_name = f'{os.path.splitext(os.path.basename(__file__))[0]}_{logfile_timestamp}.log'
+    
+    log_level = logging.DEBUG if debug_mode else logging.INFO
+    
     logging.basicConfig(
         filename=f'{logfile_path}/{logfile_name}',
         encoding='utf-8',
-        level=logging.DEBUG,
+        level=log_level,
         format='%(asctime)s [%(levelname)s] %(message)s',
         datefmt='%m-%d-%Y %H:%M:%S%z'
-        )
-    logging.info(f'START')
+    )
+    logging.info('START')
 
 def prettyPrint(msg):
     print(f'[>] {msg}')
@@ -41,12 +40,18 @@ def readMsg(socket):
     while True:
         data = socket.recv(1)
         if not data:
+            if debug_mode:
+                logging.debug('No data received from socket')
             pass
         if data == b'\n':
+            if debug_mode:
+                logging.debug(f'Received message: {message}')
             return message
         message += data
 
 def sendMsg(socket, msg):
+    if debug_mode:
+        logging.debug(f'Sending message: {msg}')
     print_exclusions = [
         '>',
         '<',
@@ -92,9 +97,18 @@ def parseWhispers(socket, string):
 
         move = re.match('move\:(.*)', message)
         if move:
-            move_string = move.group(1).split(',')
-            for m in move_string:
-                sendMsg(socket, m)
+            move_string = move.group(1)
+            move_aliases = {
+                'nw': 'm 7',
+                'ne': 'm 9',
+                'sw': 'm 1',
+                'se': 'm 3'
+            }
+            if move_string in move_aliases:
+                sendMsg(socket, move_aliases[move_string])
+                time.sleep(0.75)
+            else:
+                sendMsg(socket, move_string)
                 time.sleep(0.75)
         
         say = re.match('say:(.*)', message)
@@ -132,21 +146,14 @@ def removeParen(string):
     return cleaned_string
 
 def parseFurc(socket, msg):
+    if debug_mode:
+        logging.debug(f'Parsing message: {msg}')
     if msg == 'Dragonroar':
         sendMsg(socket, f'account {email} {character} {password}')
         sendMsg(socket, f'color {colors}')
         sendMsg(socket, f'desc {desc}')
 
-    if msg == '&&&&&&&&&&&&&':
-        sendMsg(socket, 'vascodagama')
-
-    # SUMMONING - would need to figure out to format the owner name appropriately; this could also be hardcoded.
-    # summoned = re.compile(r'\(<font color=\'query\'><name shortname=\'owner_name\'>owner_name<\/name> asks you to join their company.*')
-    # if summoned.match(msg):
-    #    sendMsg(socket, 'join')
-
-    load_dream = re.compile(r'^]q')
-    if load_dream.match(msg):
+    if msg in ['&&&&&&&&&&&&&', ']q']:
         sendMsg(socket, 'vascodagama')
 
     whispers = re.compile(r'\(<font color=\'whisper\'>')
@@ -167,8 +174,7 @@ configure_logger()
 # load configuration
 conf = open('bot.conf', "r")
 conf = json.load(conf)
-if debug_mode:
-    logging.debug(conf)
+debug_mode = conf.get('debug_mode', False)
 
 # global declarations
 hostname = conf['connection'][0]['server']
@@ -192,9 +198,14 @@ furc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
     furc.connect((hostname, port))
     connected = True
-    logging.info(f'Connected to {hostname}:{port}')
-except:
-    logging.error(f'Failed connection to {hostname}:{port}')
+    if debug_mode:
+        logging.debug(f'Successfully established connection to {hostname}:{port}')
+        logging.debug(f'Socket info: {furc.getsockname()}')
+except Exception as e:
+    if debug_mode:
+        logging.error(f'Connection failed with error: {str(e)}')
+    else:
+        logging.error(f'Failed connection to {hostname}:{port}')
 
 t0 = time.time()
 while furc._closed == False:
