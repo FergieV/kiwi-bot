@@ -3,6 +3,7 @@ import logging
 from datetime import datetime
 import re
 from typing import Optional
+from .__version__ import __version__, __title__
 
 class KiwiBot:
     def __init__(self, config: dict, name: str):
@@ -19,8 +20,8 @@ class KiwiBot:
         self.colors = config['account'][0]['colors']
         self.desc = config['account'][0]['desc']
         self.owner = config['account'][0]['owner']
-        self.app_name = 'kiwibot'
-        self.app_vers = '0.7.0-alpha'
+        self.app_name = __title__
+        self.app_vers = __version__
         self.desc = self.desc + f' [{self.app_name} {self.app_vers}]'
         
         # Add signal for UI updates
@@ -36,13 +37,22 @@ class KiwiBot:
         
     async def connect(self):
         try:
+            if self.connected:
+                return
+                
             self.reader, self.writer = await asyncio.open_connection(
                 self.config['connection'][0]['server'],
                 self.config['connection'][0]['port']
             )
             self.connected = True
+            self.running = True
             self.start_time = datetime.now()
             self.logger.info(f'Connected to server')
+            
+            # Start the bot's main loop
+            asyncio.create_task(self.run())
+            asyncio.create_task(self.stay_alive())
+            
         except Exception as e:
             self.logger.error(f'Connection failed: {e}')
             raise
@@ -50,6 +60,33 @@ class KiwiBot:
     async def send_message(self, msg: str):
         if not self.connected:
             return
+            
+        # Add print exclusions like in original code
+        print_exclusions = [
+            '>',
+            '<',
+            'm 1',
+            'm 3',
+            'm 7',
+            'm 9',
+            'lie',
+            'sit',
+            'stand',
+            'vascodagama',
+            # Add credential commands to exclusions
+            f'account {self.email} {self.character} {self.password}',
+            f'color {self.colors}',
+            f'desc {self.desc}'
+        ]
+        
+        # Log the message unless it's excluded
+        if msg not in print_exclusions:
+            formatted = f'[SEND] {msg}'
+            self.logger.info(formatted)
+            if 'chat' in self.message_handlers:
+                self.message_handlers['chat'](formatted)
+
+        # Encode and send the message
         self.writer.write(f'{msg}\n'.encode('iso-8859-1'))
         await self.writer.drain()
         self.logger.debug(f'Sent: {msg}')
@@ -57,7 +94,9 @@ class KiwiBot:
     async def read_message(self) -> str:
         data = await self.reader.readline()
         msg = data.decode('iso-8859-1').strip()
-        self.logger.debug(f'Received: {msg}')
+        if self.config.get('debug_mode', False):  # First debug print
+            if 'debug' in self.message_handlers:
+                self.message_handlers['debug'](f'{msg}')
         return msg
 
     async def run(self):
@@ -75,8 +114,11 @@ class KiwiBot:
         if self.writer:
             self.writer.close()
         self.connected = False
-        self.running = False 
-
+        self.running = False
+        self.writer = None
+        self.reader = None
+        self.start_time = None
+        
     async def handle_message(self, msg: str):
         """Handle incoming messages from the server"""
         self.message_count += 1
@@ -84,14 +126,24 @@ class KiwiBot:
         self.last_message = msg
         self.message_received.set()
         
+        # Handle authentication and vascodagama first
         if msg == 'Dragonroar':
             await self.send_message(f'account {self.email} {self.character} {self.password}')
             await self.send_message(f'color {self.colors}')
             await self.send_message(f'desc {self.desc}')
             return
 
-        if msg in ['&&&&&&&&&&&&&', ']q']:
+        # Fix vascodagama check
+        if msg.startswith(']q') or msg == '&&&&&&&&&&&&&':
             await self.send_message('vascodagama')
+            return
+
+        # Handle chat messages (anything starting with parenthesis)
+        if msg.startswith('('):
+            formatted = msg[1:]  # Remove the leading parenthesis
+            self.logger.info(formatted)
+            if 'chat' in self.message_handlers:
+                self.message_handlers['chat'](formatted)
             return
 
         # Handle whispers
@@ -117,10 +169,44 @@ class KiwiBot:
         whisperer = whisperer.group(1)
         message = re.search(r'\"([^\"]+)\"', msg)
         message = message.group(1)
+        
         formatted = f'{whisperer} (whisper): {message}'
         self.logger.info(formatted)
         if 'chat' in self.message_handlers:
             self.message_handlers['chat'](formatted)
+
+        # Handle owner commands
+        if whisperer == self.owner:
+            if message.startswith('cmd:'):
+                cmd = message[4:]
+                if cmd == 'quit':
+                    await self.send_message('\"Disconnecting...')
+                    await asyncio.sleep(5)
+                    self.disconnect()
+                else:
+                    await self.send_message(cmd)
+                    
+            elif message.startswith('move:'):
+                moves = message[5:].split(',')  # Split into array of moves
+                move_aliases = {
+                    'nw': 'm 7',
+                    'ne': 'm 9',
+                    'sw': 'm 1',
+                    'se': 'm 3',
+                    '<': '<',  # Add direct mappings for special moves
+                    '>': '>'
+                }
+                for move in moves:
+                    move = move.strip()  # Remove any whitespace
+                    if move in move_aliases:
+                        await self.send_message(move_aliases[move])
+                    else:
+                        await self.send_message(move)
+                    await asyncio.sleep(1)  # 1 second delay between moves
+                    
+            elif message.startswith('say:'):
+                say = message[4:]
+                await self.send_message(f'\"{say}')
 
     async def handle_emote(self, msg: str):
         emote = re.search(r'\(\<font\scolor\=\'emote\'\>\<name\sshortname\=\'[^\']+\'\>([^\<]+)\<\/name\>\s(.*)\<\/font\>', msg)

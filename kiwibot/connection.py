@@ -20,12 +20,8 @@ class BotManager:
 
     async def start_bot(self, bot: KiwiBot):
         """Start a single bot with its required tasks"""
-        await bot.connect()
-        self.tasks[bot.name] = [
-            asyncio.create_task(bot.run()),
-            asyncio.create_task(bot.stay_alive())
-        ]
-        
+        await bot.connect()  # This now handles its own tasks
+
     async def stop_bot(self, bot_name: str):
         """Gracefully stop a bot and its tasks"""
         if bot_name in self.bots:

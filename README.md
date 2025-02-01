@@ -1,3 +1,11 @@
-# kiwi-bot
- 
-This is a super simple Furcadia bot skeleton written in Python. The account/character deets are stored in the `bot.conf` file and you just run `kiwibot.py`. It accepts chat-relayed command issued via whisper from the "owner" specified in the configuration. It does log pretty cleanly to text files in the `logs` folder, but don't expect anything robust in that regard.
+# KiwiBot v2.0.0
+
+KiwiBot is a bot manager framework for Furcadia written in Python.
+
+## Features
+
+- Support for multiple bots in a single instance
+- Loads bots from JSON configuration files
+- Debug mode for detailed logging
+- Movement buttons for easy navigation
+- Status information for each bot
