@@ -4,31 +4,34 @@ import os
 import datetime
 import json
 import re
+import argparse
 from pathlib import Path
 from typing import Optional
+from kiwibot.__version__ import __version__, __title__, __description__
 
 class KiwiBot:
     """
     KiwiBot client for Furcadia
     Handles connection, message parsing, and command processing
     """
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: str, debug: bool = False):
         self.config = self._load_config(config_path)
         self.reader: Optional[asyncio.StreamReader] = None
         self.writer: Optional[asyncio.StreamWriter] = None
         self.connected = False
         self.running = True
+        self.debug = debug  # Store debug flag
         
         # Bot information
-        self.app_name = 'kiwibot'
-        self.app_vers = '0.7.0'
+        self.app_name = __title__
+        self.app_vers = __version__
         
         # Load credentials from config
         self.email = self.config['account'][0]['email']
         self.character = self.config['account'][0]['character']
         self.password = self.config['account'][0]['password']
         self.colors = self.config['account'][0]['colors']
-        self.desc = f"{self.config['account'][0]['desc']} [{self.app_name} {self.app_vers}]"
+        self.desc = f"{self.config['account'][0]['desc']} [{self.app_name} v{self.app_vers}]"
         self.owner = self.config['account'][0]['owner']
         
         # Configure logging
@@ -142,6 +145,10 @@ class KiwiBot:
                 data = await self.reader.readline()
                 msg = data.decode('iso-8859-1').strip()
                 
+                # Print raw messages if in debug mode
+                if self.debug:
+                    print(f'[DEBUG] {msg}')
+                
                 # Handle server messages
                 if msg == 'Dragonroar':
                     await self.send_message(f'account {self.email} {self.character} {self.password}')
@@ -149,7 +156,7 @@ class KiwiBot:
                     await self.send_message(f'desc {self.desc}')
                     continue
                     
-                if msg in ['&&&&&&&&&&&&&', ']q']:
+                if msg == '&&&&&&&&&&&&&' or msg.startswith(']q'):
                     await self.send_message('vascodagama')
                     continue
                 
@@ -177,12 +184,60 @@ class KiwiBot:
 
 async def main():
     """Entry point for the bot"""
-    config_path = Path('conf/bot.conf')
+    parser = argparse.ArgumentParser(
+        description=f'{__title__} v{__version__} - {__description__}'
+    )
+    parser.add_argument(
+        '-c', '--config',
+        type=str,
+        help='Name of the configuration file in the conf directory'
+    )
+    parser.add_argument(
+        '--list-configs',
+        action='store_true',
+        help='List available configuration files'
+    )
+    parser.add_argument(
+        '-d', '--debug',
+        action='store_true',
+        help='Enable debug mode (print raw server messages)'
+    )
+    
+    args = parser.parse_args()
+    
+    # Check if conf directory exists
+    conf_dir = Path('conf')
+    if not conf_dir.exists():
+        print("Error: 'conf' directory not found.")
+        print("Please create a 'conf' directory and add your configuration files.")
+        return
+    
+    # Handle config listing
+    if args.list_configs:
+        configs = list(conf_dir.glob('*.conf'))
+        if not configs:
+            print("No configuration files found in conf directory.")
+            return
+        print("\nAvailable configuration files:")
+        for config in configs:
+            print(f"  - {config.name}")
+        return
+    
+    # Require config argument if not listing configs
+    if not args.config:
+        parser.error("the following arguments are required: -c/--config")
+    
+    # Check for config file
+    config_path = conf_dir / args.config
     if not config_path.exists():
-        print(f"Configuration file not found: {config_path}")
+        print(f"Error: Configuration file not found: {config_path}")
+        print("Use --list-configs to see available configuration files.")
         return
         
-    bot = KiwiBot(str(config_path))
+    print(f"Starting bot with config: {config_path}")
+    if args.debug:
+        print("Debug mode enabled")
+    bot = KiwiBot(str(config_path), debug=args.debug)
     await bot.run()
 
 if __name__ == "__main__":
