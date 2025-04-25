@@ -8,14 +8,15 @@ import argparse
 from pathlib import Path
 from typing import Optional
 from kiwibot.__version__ import __version__, __title__, __description__
+from db.config import get_all_config, get_config, initialize_database
 
 class KiwiBot:
     """
     KiwiBot client for Furcadia
     Handles connection, message parsing, and command processing
     """
-    def __init__(self, config_path: str, debug: bool = False):
-        self.config = self._load_config(config_path)
+    def __init__(self, debug: bool = False):
+        self.config = self._load_config()
         self.reader: Optional[asyncio.StreamReader] = None
         self.writer: Optional[asyncio.StreamWriter] = None
         self.connected = False
@@ -27,20 +28,20 @@ class KiwiBot:
         self.app_vers = __version__
         
         # Load credentials from config
-        self.email = self.config['account'][0]['email']
-        self.character = self.config['account'][0]['character']
-        self.password = self.config['account'][0]['password']
-        self.colors = self.config['account'][0]['colors']
-        self.desc = f"{self.config['account'][0]['desc']} [{self.app_name} v{self.app_vers}]"
-        self.owner = self.config['account'][0]['owner']
+        account_config = self.config.get('account', [{}])[0]
+        self.email = account_config.get('email', '')
+        self.character = account_config.get('character', '')
+        self.password = account_config.get('password', '')
+        self.colors = account_config.get('colors', '')
+        self.desc = f"{account_config.get('desc', '')} [{self.app_name} v{self.app_vers}]"
+        self.owner = account_config.get('owner', '')
         
         # Configure logging
         self._setup_logger()
         
-    def _load_config(self, config_path: str) -> dict:
-        """Load and parse the configuration file"""
-        with open(config_path, 'r') as f:
-            return json.load(f)
+    def _load_config(self) -> dict:
+        """Load configuration from SQLite database"""
+        return get_all_config() or {}
             
     def _setup_logger(self):
         """Configure logging with timestamp-based filename"""
@@ -62,10 +63,15 @@ class KiwiBot:
     async def connect(self):
         """Establish connection to Furcadia server"""
         try:
-            self.reader, self.writer = await asyncio.open_connection(
-                self.config['connection'][0]['server'],
-                self.config['connection'][0]['port']
-            )
+            connection_config = self.config.get('connection', [{}])[0]
+            server = connection_config.get('server', '')
+            port = connection_config.get('port', 0)
+            
+            if not server or not port:
+                logging.error('Server or port not configured')
+                raise ValueError('Server configuration missing')
+                
+            self.reader, self.writer = await asyncio.open_connection(server, port)
             self.connected = True
             logging.info('Connected to server')
         except Exception as e:
@@ -188,16 +194,6 @@ async def main():
         description=f'{__title__} v{__version__} - {__description__}'
     )
     parser.add_argument(
-        '-c', '--config',
-        type=str,
-        help='Name of the configuration file in the conf directory'
-    )
-    parser.add_argument(
-        '--list-configs',
-        action='store_true',
-        help='List available configuration files'
-    )
-    parser.add_argument(
         '-d', '--debug',
         action='store_true',
         help='Enable debug mode (print raw server messages)'
@@ -205,39 +201,20 @@ async def main():
     
     args = parser.parse_args()
     
-    # Check if conf directory exists
-    conf_dir = Path('conf')
-    if not conf_dir.exists():
-        print("Error: 'conf' directory not found.")
-        print("Please create a 'conf' directory and add your configuration files.")
+    # Initialize database
+    initialize_database()
+    
+    # Check if we have configuration
+    config = get_all_config()
+    if not config:
+        print("Error: No configuration found in the database.")
+        print("Please run the migration script first: python scripts/migrate_config.py")
         return
     
-    # Handle config listing
-    if args.list_configs:
-        configs = list(conf_dir.glob('*.conf'))
-        if not configs:
-            print("No configuration files found in conf directory.")
-            return
-        print("\nAvailable configuration files:")
-        for config in configs:
-            print(f"  - {config.name}")
-        return
-    
-    # Require config argument if not listing configs
-    if not args.config:
-        parser.error("the following arguments are required: -c/--config")
-    
-    # Check for config file
-    config_path = conf_dir / args.config
-    if not config_path.exists():
-        print(f"Error: Configuration file not found: {config_path}")
-        print("Use --list-configs to see available configuration files.")
-        return
-        
-    print(f"Starting bot with config: {config_path}")
+    print("Starting bot with SQLite configuration")
     if args.debug:
         print("Debug mode enabled")
-    bot = KiwiBot(str(config_path), debug=args.debug)
+    bot = KiwiBot(debug=args.debug)
     await bot.run()
 
 if __name__ == "__main__":
