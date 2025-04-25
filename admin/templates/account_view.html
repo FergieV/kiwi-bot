@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}{{ account.name }} - KiwiBot Management Console 🥝{% endblock %}
+
+{% block content %}
+<div class="bg-dark-200 p-6 rounded shadow">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">{{ account.name }}</h1>
+        <div class="space-x-4">
+            <a href="{{ url_for('edit_account', account_id=account.id) }}" class="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded">Edit</a>
+            <a href="{{ url_for('index') }}" class="px-4 py-2 bg-dark-400 hover:bg-dark-500 text-gray-300 rounded">Back</a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Account Information -->
+        <div class="space-y-4">
+            <h2 class="text-xl font-semibold text-gray-300">Account Information</h2>
+            
+            <div class="bg-dark-300 p-4 rounded">
+                <dl class="space-y-4">
+                    <div>
+                        <dt class="text-sm font-medium text-gray-400">Email</dt>
+                        <dd class="mt-1 text-gray-100">{{ account.email }}</dd>
+                    </div>
+                    
+                    <div>
+                        <dt class="text-sm font-medium text-gray-400">Owner</dt>
+                        <dd class="mt-1 text-gray-100">{{ account.owner or 'Not set' }}</dd>
+                    </div>
+                    
+                    <div>
+                        <dt class="text-sm font-medium text-gray-400">Character</dt>
+                        <dd class="mt-1 text-gray-100">{{ account.character }}</dd>
+                    </div>
+                    
+                    <div>
+                        <dt class="text-sm font-medium text-gray-400">Colors</dt>
+                        <dd class="mt-1 text-gray-100">{{ account.colors or 'Not set' }}</dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+        
+        <!-- Connection Settings -->
+        <div class="space-y-4">
+            <h2 class="text-xl font-semibold text-gray-300">Connection Settings</h2>
+            
+            <div class="bg-dark-300 p-4 rounded">
+                <dl class="space-y-4">
+                    <div>
+                        <dt class="text-sm font-medium text-gray-400">Server</dt>
+                        <dd class="mt-1 text-gray-100">{{ account.connection.server if account.connection else 'Not set' }}</dd>
+                    </div>
+                    
+                    <div>
+                        <dt class="text-sm font-medium text-gray-400">Port</dt>
+                        <dd class="mt-1 text-gray-100">{{ account.connection.port if account.connection else 'Not set' }}</dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+    </div>
+    
+    {% if account.description %}
+    <div class="mt-6">
+        <h2 class="text-xl font-semibold text-gray-300 mb-4">Description</h2>
+        <div class="bg-dark-300 p-4 rounded">
+            <p class="text-gray-100 whitespace-pre-wrap">{{ account.description }}</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

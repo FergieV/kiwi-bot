@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}{% if account %}Edit{% else %}Add{% endif %} Account - KiwiBot Management Console 🥝{% endblock %}
+
+{% block content %}
+<div class="bg-dark-200 p-6 rounded shadow">
+    <h1 class="text-2xl font-bold mb-6">{% if account %}Edit{% else %}Add{% endif %} Account</h1>
+    
+    <form method="POST" class="space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Account Information -->
+            <div class="space-y-4">
+                <h2 class="text-xl font-semibold text-gray-300">Account Information</h2>
+                
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-300">Name</label>
+                    <input type="text" name="name" id="name" value="{{ account.name if account else '' }}" 
+                           class="mt-1 block w-full rounded-md bg-dark-300 border-dark-400 text-gray-100 shadow-sm focus:border-purple-500 focus:ring-purple-500" required>
+                </div>
+                
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-300">Email</label>
+                    <input type="email" name="email" id="email" value="{{ account.email if account else '' }}" 
+                           class="mt-1 block w-full rounded-md bg-dark-300 border-dark-400 text-gray-100 shadow-sm focus:border-purple-500 focus:ring-purple-500" required>
+                </div>
+                
+                <div>
+                    <label for="owner" class="block text-sm font-medium text-gray-300">Owner</label>
+                    <input type="text" name="owner" id="owner" value="{{ account.owner if account else '' }}" 
+                           class="mt-1 block w-full rounded-md bg-dark-300 border-dark-400 text-gray-100 shadow-sm focus:border-purple-500 focus:ring-purple-500">
+                </div>
+                
+                <div>
+                    <label for="character" class="block text-sm font-medium text-gray-300">Character</label>
+                    <input type="text" name="character" id="character" value="{{ account.character if account else '' }}" 
+                           class="mt-1 block w-full rounded-md bg-dark-300 border-dark-400 text-gray-100 shadow-sm focus:border-purple-500 focus:ring-purple-500">
+                </div>
+                
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-300">Password</label>
+                    <input type="password" name="password" id="password" 
+                           class="mt-1 block w-full rounded-md bg-dark-300 border-dark-400 text-gray-100 shadow-sm focus:border-purple-500 focus:ring-purple-500">
+                </div>
+                
+                <div>
+                    <label for="colors" class="block text-sm font-medium text-gray-300">Colors</label>
+                    <input type="text" name="colors" id="colors" value="{{ account.colors if account else '' }}" 
+                           class="mt-1 block w-full rounded-md bg-dark-300 border-dark-400 text-gray-100 shadow-sm focus:border-purple-500 focus:ring-purple-500">
+                </div>
+            </div>
+            
+            <!-- Connection Settings -->
+            <div class="space-y-4">
+                <h2 class="text-xl font-semibold text-gray-300">Connection Settings</h2>
+                
+                <div>
+                    <label for="server" class="block text-sm font-medium text-gray-300">Server</label>
+                    <input type="text" name="server" id="server" value="{{ account.connection.server if account and account.connection else '' }}" 
+                           class="mt-1 block w-full rounded-md bg-dark-300 border-dark-400 text-gray-100 shadow-sm focus:border-purple-500 focus:ring-purple-500">
+                </div>
+                
+                <div>
+                    <label for="port" class="block text-sm font-medium text-gray-300">Port</label>
+                    <input type="number" name="port" id="port" value="{{ account.connection.port if account and account.connection else '' }}" 
+                           class="mt-1 block w-full rounded-md bg-dark-300 border-dark-400 text-gray-100 shadow-sm focus:border-purple-500 focus:ring-purple-500">
+                </div>
+                
+                <div>
+                    <label for="description" class="block text-sm font-medium text-gray-300">Description</label>
+                    <textarea name="description" id="description" rows="4" 
+                              class="mt-1 block w-full rounded-md bg-dark-300 border-dark-400 text-gray-100 shadow-sm focus:border-purple-500 focus:ring-purple-500">{{ account.description if account else '' }}</textarea>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex justify-end space-x-4">
+            <a href="{{ url_for('index') }}" class="px-4 py-2 bg-dark-400 hover:bg-dark-500 rounded text-gray-300">Back</a>
+            <button type="submit" class="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded">
+                {% if account %}Update{% else %}Create{% endif %} Account
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %} 

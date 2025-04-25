@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}KiwiBot Management Console 🥝{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            100: '#1E1E1E',
+                            200: '#2D2D2D',
+                            300: '#3D3D3D',
+                            400: '#4D4D4D',
+                            500: '#5D5D5D',
+                        },
+                        purple: {
+                            400: '#8A2BE2',
+                            500: '#7B1FA2',
+                            600: '#6A1B9A',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    {% block head %}{% endblock %}
+</head>
+<body class="bg-dark-100 text-gray-100 min-h-screen">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="fixed top-4 right-4 z-50 max-w-md">
+                {% for category, message in messages %}
+                    {% set alert_class = "bg-purple-50 text-purple-800 border-purple-300" %}
+                    {% if category == 'error' %}
+                        {% set alert_class = "bg-red-50 text-red-800 border-red-300" %}
+                    {% elif category == 'success' %}
+                        {% set alert_class = "bg-green-50 text-green-800 border-green-300" %}
+                    {% endif %}
+                    
+                    <div class="mb-4 border rounded-lg shadow-lg p-4 {{ alert_class }}" id="flash-message-{{ loop.index }}">
+                        <div class="flex justify-between">
+                            <div>{{ message }}</div>
+                            <button onclick="closeFlashMessage('flash-message-{{ loop.index }}')" class="text-gray-500 hover:text-gray-700">
+                                ×
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <script>
+                        // Auto-close flash message after 5 seconds
+                        setTimeout(function() {
+                            closeFlashMessage('flash-message-{{ loop.index }}');
+                        }, 5000);
+                    </script>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-center mb-4">KiwiBot Management Console 🥝</h1>
+            <nav class="flex justify-center space-x-4">
+                <a href="{{ url_for('index') }}" class="px-4 py-2 bg-dark-400 hover:bg-dark-500 text-gray-300 rounded {% if request.endpoint == 'index' %}bg-dark-500{% endif %}">Accounts</a>
+                <a href="{{ url_for('connections') }}" class="px-4 py-2 bg-dark-400 hover:bg-dark-500 text-gray-300 rounded {% if request.endpoint == 'connections' %}bg-dark-500{% endif %}">Connections</a>
+            </nav>
+        </header>
+        
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    
+    <script>
+        function closeFlashMessage(id) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.style.display = 'none';
+            }
+        }
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html> 

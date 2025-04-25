@@ -21,10 +21,11 @@ def initialize_database():
     try:
         cursor = conn.cursor()
         
-        # Create account table
+        # Create account table with name field
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS account (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,  -- Profile name for selection
             email TEXT NOT NULL,
             character TEXT NOT NULL,
             password TEXT NOT NULL,
@@ -38,22 +39,52 @@ def initialize_database():
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS connection (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            account_id INTEGER NOT NULL,
             server TEXT NOT NULL,
-            port INTEGER NOT NULL
+            port INTEGER NOT NULL,
+            FOREIGN KEY (account_id) REFERENCES account(id)
         )
         ''')
         
         conn.commit()
+        
+        # Check if we need to add the name column to existing table
+        cursor.execute("PRAGMA table_info(account)")
+        columns = [column[1] for column in cursor.fetchall()]
+        
+        if "name" not in columns:
+            # Add name column to existing accounts
+            cursor.execute("ALTER TABLE account ADD COLUMN name TEXT")
+            cursor.execute("UPDATE account SET name = 'default' WHERE name IS NULL")
+            conn.commit()
+            
+        # Check if we need to add the account_id column to connection table
+        cursor.execute("PRAGMA table_info(connection)")
+        columns = [column[1] for column in cursor.fetchall()]
+        
+        if "account_id" not in columns:
+            # Update connection table
+            cursor.execute("ALTER TABLE connection ADD COLUMN account_id INTEGER DEFAULT 1")
+            cursor.execute("UPDATE connection SET account_id = 1 WHERE account_id IS NULL")
+            conn.commit()
     finally:
         conn.close()
 
 # Account configuration functions
-def get_account(account_id=1):
-    """Get account configuration"""
+def get_account(account_id=None, name=None):
+    """Get account configuration by ID or name"""
+    if account_id is None and name is None:
+        # Default to ID 1 if neither specified
+        account_id = 1
+        
     conn = get_connection()
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM account WHERE id = ?", (account_id,))
+        if account_id is not None:
+            cursor.execute("SELECT * FROM account WHERE id = ?", (account_id,))
+        else:
+            cursor.execute("SELECT * FROM account WHERE name = ?", (name,))
+            
         row = cursor.fetchone()
         if row:
             return dict(row)
@@ -61,18 +92,28 @@ def get_account(account_id=1):
     finally:
         conn.close()
 
-def set_account(email, character, password, colors, description, owner, account_id=1):
+def list_accounts():
+    """List all available accounts"""
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, name, character FROM account ORDER BY id")
+        accounts = [dict(row) for row in cursor.fetchall()]
+        return accounts
+    finally:
+        conn.close()
+
+def set_account(email, character, password, colors, description, owner, name="default", account_id=None):
     """Set account configuration"""
     conn = get_connection()
     try:
         cursor = conn.cursor()
-        # First check if account exists
-        cursor.execute("SELECT COUNT(*) FROM account WHERE id = ?", (account_id,))
-        exists = cursor.fetchone()[0] > 0
         
-        if exists:
+        if account_id is not None:
+            # Update existing account by ID
             cursor.execute('''
             UPDATE account SET 
+                name = ?,
                 email = ?, 
                 character = ?, 
                 password = ?, 
@@ -80,29 +121,101 @@ def set_account(email, character, password, colors, description, owner, account_
                 description = ?,
                 owner = ?
             WHERE id = ?
-            ''', (email, character, password, colors, description, owner, account_id))
+            ''', (name, email, character, password, colors, description, owner, account_id))
         else:
-            cursor.execute('''
-            INSERT INTO account (
-                email, character, password, colors, description, owner, id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (email, character, password, colors, description, owner, account_id))
+            # Check if account with this name already exists
+            cursor.execute("SELECT id FROM account WHERE name = ?", (name,))
+            existing = cursor.fetchone()
+            
+            if existing:
+                # Update existing account by name
+                cursor.execute('''
+                UPDATE account SET 
+                    email = ?, 
+                    character = ?, 
+                    password = ?, 
+                    colors = ?, 
+                    description = ?,
+                    owner = ?
+                WHERE name = ?
+                ''', (email, character, password, colors, description, owner, name))
+            else:
+                # Create new account
+                cursor.execute('''
+                INSERT INTO account (
+                    name, email, character, password, colors, description, owner
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (name, email, character, password, colors, description, owner))
         
+        conn.commit()
+        
+        # Get the account ID for the connection
+        if account_id is None:
+            cursor.execute("SELECT id FROM account WHERE name = ?", (name,))
+            account_id = cursor.fetchone()[0]
+            
+        return account_id
+    except Exception as e:
+        print(f"Error setting account: {e}")
+        return None
+    finally:
+        conn.close()
+
+def delete_account(account_id=None, name=None):
+    """Delete an account by ID or name"""
+    if account_id is None and name is None:
+        return False
+        
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        
+        # First get the account ID if name was provided
+        if account_id is None:
+            cursor.execute("SELECT id FROM account WHERE name = ?", (name,))
+            row = cursor.fetchone()
+            if not row:
+                return False
+            account_id = row[0]
+        
+        # Delete related connection configs
+        cursor.execute("DELETE FROM connection WHERE account_id = ?", (account_id,))
+        
+        # Delete the account
+        if account_id is not None:
+            cursor.execute("DELETE FROM account WHERE id = ?", (account_id,))
+        else:
+            cursor.execute("DELETE FROM account WHERE name = ?", (name,))
+            
         conn.commit()
         return True
     except Exception as e:
-        print(f"Error setting account: {e}")
+        print(f"Error deleting account: {e}")
         return False
     finally:
         conn.close()
 
 # Connection configuration functions
-def get_connection_config(conn_id=1):
+def get_connection_config(conn_id=None, account_id=None, account_name=None):
     """Get connection configuration"""
+    if account_name is not None:
+        # Get account ID from name
+        account = get_account(name=account_name)
+        if account:
+            account_id = account['id']
+    
     conn = get_connection()
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM connection WHERE id = ?", (conn_id,))
+        
+        if conn_id is not None:
+            cursor.execute("SELECT * FROM connection WHERE id = ?", (conn_id,))
+        elif account_id is not None:
+            cursor.execute("SELECT * FROM connection WHERE account_id = ?", (account_id,))
+        else:
+            # Default to first connection
+            cursor.execute("SELECT * FROM connection LIMIT 1")
+            
         row = cursor.fetchone()
         if row:
             return dict(row)
@@ -110,28 +223,56 @@ def get_connection_config(conn_id=1):
     finally:
         conn.close()
 
-def set_connection_config(server, port, conn_id=1):
-    """Set connection configuration"""
+def list_connection_configs():
+    """List all connection configurations with account names"""
     conn = get_connection()
     try:
         cursor = conn.cursor()
-        # First check if connection exists
-        cursor.execute("SELECT COUNT(*) FROM connection WHERE id = ?", (conn_id,))
-        exists = cursor.fetchone()[0] > 0
+        cursor.execute("""
+            SELECT c.id, c.account_id, c.server, c.port, a.name as account_name
+            FROM connection c
+            JOIN account a ON c.account_id = a.id
+            ORDER BY a.name
+        """)
+        connections = [dict(row) for row in cursor.fetchall()]
+        return connections
+    finally:
+        conn.close()
+
+def set_connection_config(server, port, account_id=None, account_name=None):
+    """Set connection configuration for an account"""
+    if account_name is not None and account_id is None:
+        # Get account ID from name
+        account = get_account(name=account_name)
+        if account:
+            account_id = account['id']
+    
+    if account_id is None:
+        # Default to account ID 1
+        account_id = 1
+    
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        # Check if connection exists for this account
+        cursor.execute("SELECT id FROM connection WHERE account_id = ?", (account_id,))
+        existing = cursor.fetchone()
         
-        if exists:
+        if existing:
+            # Update existing connection
             cursor.execute('''
             UPDATE connection SET 
                 server = ?, 
                 port = ?
-            WHERE id = ?
-            ''', (server, port, conn_id))
+            WHERE account_id = ?
+            ''', (server, port, account_id))
         else:
+            # Create new connection
             cursor.execute('''
             INSERT INTO connection (
-                server, port, id
+                account_id, server, port
             ) VALUES (?, ?, ?)
-            ''', (server, port, conn_id))
+            ''', (account_id, server, port))
         
         conn.commit()
         return True
@@ -163,9 +304,11 @@ def migrate_from_old_format():
                 old_config[key] = value
                 
         # Migrate account data
+        account_id = None
         if 'account' in old_config and isinstance(old_config['account'], list) and len(old_config['account']) > 0:
             account = old_config['account'][0]
-            set_account(
+            account_id = set_account(
+                name="default",
                 email=account.get('email', ''),
                 character=account.get('character', ''),
                 password=account.get('password', ''),
@@ -179,7 +322,8 @@ def migrate_from_old_format():
             connection = old_config['connection'][0]
             set_connection_config(
                 server=connection.get('server', ''),
-                port=connection.get('port', 0)
+                port=connection.get('port', 0),
+                account_id=account_id
             )
                 
         # Rename old table for backup
@@ -193,7 +337,7 @@ def migrate_from_old_format():
         conn.close()
 
 # Import from JSON file to relational structure
-def import_from_json(json_path):
+def import_from_json(json_path, profile_name="default"):
     """Import configuration from a JSON file"""
     try:
         with open(json_path, 'r') as f:
@@ -204,9 +348,11 @@ def import_from_json(json_path):
             conn.execute("BEGIN TRANSACTION")
             
             # Import account data
+            account_id = None
             if 'account' in config_data and isinstance(config_data['account'], list) and len(config_data['account']) > 0:
                 account = config_data['account'][0]
-                set_account(
+                account_id = set_account(
+                    name=profile_name,
                     email=account.get('email', ''),
                     character=account.get('character', ''),
                     password=account.get('password', ''),
@@ -220,7 +366,8 @@ def import_from_json(json_path):
                 connection = config_data['connection'][0]
                 set_connection_config(
                     server=connection.get('server', ''),
-                    port=connection.get('port', 0)
+                    port=connection.get('port', 0),
+                    account_id=account_id
                 )
                     
             conn.commit()

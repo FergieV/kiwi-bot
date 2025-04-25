@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Connections - KiwiBot Management Console 🥝{% endblock %}
+
+{% block content %}
+<div class="bg-dark-200 p-6 rounded shadow">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">Connections</h1>
+        <a href="{{ url_for('edit_connection') }}" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded">
+            Add Connection
+        </a>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-dark-200">
+            <thead>
+                <tr>
+                    <th class="py-2 px-4 border-b border-dark-400 bg-dark-300 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                        Account
+                    </th>
+                    <th class="py-2 px-4 border-b border-dark-400 bg-dark-300 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                        Server
+                    </th>
+                    <th class="py-2 px-4 border-b border-dark-400 bg-dark-300 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                        Port
+                    </th>
+                    <th class="py-2 px-4 border-b border-dark-400 bg-dark-300 text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                        Actions
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if connections %}
+                    {% for connection in connections %}
+                        <tr>
+                            <td class="py-2 px-4 border-b border-dark-400">{{ connection.account_name }}</td>
+                            <td class="py-2 px-4 border-b border-dark-400">{{ connection.server }}</td>
+                            <td class="py-2 px-4 border-b border-dark-400">{{ connection.port }}</td>
+                            <td class="py-2 px-4 border-b border-dark-400 text-right">
+                                <a href="{{ url_for('edit_connection', account_id=connection.account_id) }}" class="text-purple-400 hover:text-purple-300">Edit</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="4" class="py-4 px-4 border-b border-dark-400 text-center text-gray-400">
+                            No connections found.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Edit Connection Modal -->
+<div id="editModal" class="hidden fixed inset-0 bg-dark-500 bg-opacity-50 flex items-center justify-center">
+    <div class="bg-dark-300 p-6 rounded shadow-lg max-w-md w-full">
+        <h2 class="text-xl font-bold mb-4 text-gray-300">Edit Connection: <span id="modalAccountName" class="text-purple-400"></span></h2>
+        
+        <form id="connectionForm" method="POST" action="{{ url_for('edit_connection') }}">
+            <input type="hidden" id="account_id" name="account_id" value="">
+            
+            <div class="mb-4">
+                <label for="server" class="block text-sm font-medium text-gray-300 mb-1">Server</label>
+                <input type="text" id="server" name="server" class="w-full p-2 rounded bg-dark-400 border-dark-500 text-gray-100 focus:border-purple-500 focus:ring-purple-500" required>
+            </div>
+            
+            <div class="mb-6">
+                <label for="port" class="block text-sm font-medium text-gray-300 mb-1">Port</label>
+                <input type="number" id="port" name="port" class="w-full p-2 rounded bg-dark-400 border-dark-500 text-gray-100 focus:border-purple-500 focus:ring-purple-500" required>
+            </div>
+            
+            <div class="flex justify-end space-x-4">
+                <button type="button" onclick="hideEditModal()" class="px-4 py-2 bg-dark-400 hover:bg-dark-500 text-gray-300 rounded">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function openEditModal(accountId, accountName, server, port) {
+        document.getElementById('modalAccountName').textContent = accountName;
+        document.getElementById('account_id').value = accountId;
+        document.getElementById('server').value = server;
+        document.getElementById('port').value = port;
+        document.getElementById('editModal').classList.remove('hidden');
+    }
+    
+    function hideEditModal() {
+        document.getElementById('editModal').classList.add('hidden');
+    }
+    
+    // Close modal when clicking outside
+    document.getElementById('editModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            hideEditModal();
+        }
+    });
+</script>
+{% endblock %} 
