@@ -11,6 +11,8 @@ from kiwibot.__version__ import __version__, __title__, __description__
 from db.config import initialize_database, get_account, get_connection_config, migrate_from_old_format, list_accounts
 from kiwibot.commands.base import Command
 from kiwibot.commands.movement import MovementCommand
+from kiwibot.commands.say import SayCommand
+from kiwibot.commands.system import SystemCommand
 
 class KiwiBot:
     """
@@ -120,6 +122,18 @@ class KiwiBot:
         self.commands[move_cmd.name] = move_cmd
         for alias in move_cmd.aliases:
             self.commands[alias] = move_cmd
+            
+        # Register say command
+        say_cmd = SayCommand(self)
+        self.commands[say_cmd.name] = say_cmd
+        for alias in say_cmd.aliases:
+            self.commands[alias] = say_cmd
+            
+        # Register system command
+        sys_cmd = SystemCommand(self)
+        self.commands[sys_cmd.name] = sys_cmd
+        for alias in sys_cmd.aliases:
+            self.commands[alias] = sys_cmd
     
     async def handle_command(self, account_id: str, command: str, args: list[str]) -> None:
         """Handle a command from the owner"""
