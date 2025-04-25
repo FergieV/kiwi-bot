@@ -8,7 +8,7 @@ import argparse
 from pathlib import Path
 from typing import Optional
 from kiwibot.__version__ import __version__, __title__, __description__
-from db.config import get_all_config, get_config, initialize_database
+from db.config import initialize_database, get_account, get_connection_config, migrate_from_old_format
 
 class KiwiBot:
     """
@@ -16,7 +16,9 @@ class KiwiBot:
     Handles connection, message parsing, and command processing
     """
     def __init__(self, debug: bool = False):
-        self.config = self._load_config()
+        self.account = get_account()
+        self.connection = get_connection_config()
+        
         self.reader: Optional[asyncio.StreamReader] = None
         self.writer: Optional[asyncio.StreamWriter] = None
         self.connected = False
@@ -28,20 +30,23 @@ class KiwiBot:
         self.app_vers = __version__
         
         # Load credentials from config
-        account_config = self.config.get('account', [{}])[0]
-        self.email = account_config.get('email', '')
-        self.character = account_config.get('character', '')
-        self.password = account_config.get('password', '')
-        self.colors = account_config.get('colors', '')
-        self.desc = f"{account_config.get('desc', '')} [{self.app_name} v{self.app_vers}]"
-        self.owner = account_config.get('owner', '')
+        if self.account:
+            self.email = self.account.get('email', '')
+            self.character = self.account.get('character', '')
+            self.password = self.account.get('password', '')
+            self.colors = self.account.get('colors', '')
+            self.desc = f"{self.account.get('description', '')} [{self.app_name} v{self.app_vers}]"
+            self.owner = self.account.get('owner', '')
+        else:
+            self.email = ''
+            self.character = ''
+            self.password = ''
+            self.colors = ''
+            self.desc = f"[{self.app_name} v{self.app_vers}]"
+            self.owner = ''
         
         # Configure logging
         self._setup_logger()
-        
-    def _load_config(self) -> dict:
-        """Load configuration from SQLite database"""
-        return get_all_config() or {}
             
     def _setup_logger(self):
         """Configure logging with timestamp-based filename"""
@@ -63,9 +68,12 @@ class KiwiBot:
     async def connect(self):
         """Establish connection to Furcadia server"""
         try:
-            connection_config = self.config.get('connection', [{}])[0]
-            server = connection_config.get('server', '')
-            port = connection_config.get('port', 0)
+            if not self.connection:
+                logging.error('Connection configuration not found')
+                raise ValueError('Connection configuration missing')
+                
+            server = self.connection.get('server', '')
+            port = self.connection.get('port', 0)
             
             if not server or not port:
                 logging.error('Server or port not configured')
@@ -204,11 +212,16 @@ async def main():
     # Initialize database
     initialize_database()
     
+    # Try to migrate from old format if needed
+    migrate_from_old_format()
+    
     # Check if we have configuration
-    config = get_all_config()
-    if not config:
-        print("Error: No configuration found in the database.")
-        print("Please run the migration script first: python scripts/migrate_config.py")
+    account_config = get_account()
+    connection_config = get_connection_config()
+    
+    if not account_config or not connection_config:
+        print("Error: Incomplete configuration in the database.")
+        print("Please ensure both account and connection settings are configured.")
         return
     
     print("Starting bot with SQLite configuration")
