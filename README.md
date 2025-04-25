@@ -60,15 +60,37 @@ python app.py
 ```
 Then open `http://127.0.0.1:5000` in your browser.
 
+## Database Configuration
+
+The bot uses SQLite for storing account and connection information:
+- Database location: `data/config.db`
+- This file is excluded from git tracking to protect your credentials
+- Each user should have their own local database file
+
+If you accidentally committed the database file:
+```bash
+# Remove from git tracking while keeping local file
+git rm --cached data/config.db
+git commit -m "Remove config.db from git tracking"
+git push
+```
+
 ## Command System
 
 ### Using Commands
 
 Commands can be sent to the bot via whispers from the owner character:
 ```
-!move north 2     # Move 2 steps north
-!help             # Show available commands
+!move nw 2     # Move 2 steps northwest
+!move se 1     # Move 1 step southeast
+!help          # Show available commands
 ```
+
+Available movement directions:
+- `nw`: Northwest
+- `sw`: Southwest
+- `ne`: Northeast
+- `se`: Southeast
 
 ### Creating New Commands
 
