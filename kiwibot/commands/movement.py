@@ -14,7 +14,7 @@ class MovementCommand(Command):
         
     async def execute(self, account_id: str, args: List[str]) -> None:
         if not args:
-            await self.bot.send_message(account_id, "Please specify a direction (north, south, east, west)")
+            await self.bot.send_message(account_id, "Please specify a direction (nw, sw, ne, se)")
             return
             
         direction = args[0].lower()
@@ -26,8 +26,8 @@ class MovementCommand(Command):
                 await self.bot.send_message(account_id, "Invalid number of steps")
                 return
                 
-        if direction not in ["north", "south", "east", "west"]:
-            await self.bot.send_message(account_id, "Invalid direction. Use north, south, east, or west")
+        if direction not in ["nw", "sw", "ne", "se"]:
+            await self.bot.send_message(account_id, "Invalid direction. Use nw, sw, ne, or se")
             return
             
         # Get character position
@@ -38,14 +38,18 @@ class MovementCommand(Command):
             
         # Calculate new position
         x, y = char.position
-        if direction == "north":
-            y -= steps
-        elif direction == "south":
-            y += steps
-        elif direction == "east":
-            x += steps
-        elif direction == "west":
+        if direction == "nw":
             x -= steps
+            y -= steps
+        elif direction == "sw":
+            x -= steps
+            y += steps
+        elif direction == "ne":
+            x += steps
+            y -= steps
+        elif direction == "se":
+            x += steps
+            y += steps
             
         # Check if new position is valid
         if not self.bot.is_valid_position(x, y):

@@ -29,16 +29,28 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+4. Initialize the database:
+```bash
+python scripts/init_db.py
+```
+This will create a default template database with a sample account. You can then edit this account using either the web interface or command line tools.
+
 ## Quick Start
 
-1. Create your first bot account:
+1. Edit your bot account:
 ```bash
-python scripts/account_manager.py create mybot
+# Using the web interface
+cd admin
+python app.py
+# Then open http://127.0.0.1:5000 in your browser
+
+# Or using the command line
+python scripts/account_manager.py edit --name default
 ```
 
 2. Start the bot:
 ```bash
-python main.py --profile mybot
+python main.py --profile default
 ```
 
 3. Access the web interface:

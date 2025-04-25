@@ -30,8 +30,10 @@ instance/
 .webassets-cache
 
 # SQLite database
-*.db
-*.sqlite3
+**/*.db
+**/*.sqlite3
+data/*.db
+data/*.sqlite3
 
 # Logs
 logs/
