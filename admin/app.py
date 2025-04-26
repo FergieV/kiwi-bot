@@ -29,9 +29,21 @@ def view_account(account_id):
         flash(f"Account with ID {account_id} not found", "error")
         return redirect(url_for('index'))
     
-    connection = get_connection_config(account_id=account_id)
-    return render_template('account_view.html', account=account, connection=connection, 
-                          title=f"Account: {account['name']}")
+    # Ensure all required fields are present
+    account_data = {
+        'id': account['id'],
+        'name': account['name'],
+        'email': account['email'],
+        'character': account['character'],
+        'password': account['password'],
+        'colors': account['colors'],
+        'description': account['description'],
+        'owner': account['owner']
+    }
+    
+    return render_template('account_view.html', 
+                         account=account_data, 
+                         title=f"Account: {account['name']}")
 
 @app.route('/accounts/new', methods=['GET', 'POST'])
 def new_account():
@@ -44,12 +56,6 @@ def new_account():
         colors = request.form.get('colors', '').strip() or "nynn"
         description = request.form.get('description', '').strip()
         owner = request.form.get('owner', '').strip()
-        server = request.form.get('server', '').strip() or "lightbringer.furcadia.com"
-        
-        try:
-            port = int(request.form.get('port', '6500'))
-        except ValueError:
-            port = 6500
         
         # Validate required fields
         if not all([name, email, character, password]):
@@ -62,7 +68,7 @@ def new_account():
         if existing:
             flash(f"Account with name '{name}' already exists", "error")
             return render_template('account_form.html', title="New Account", 
-                                 account=request.form, connection=request.form, is_new=True)
+                                 account=request.form, connection={}, is_new=True)
         
         # Create the account
         account_id = set_account(
@@ -78,20 +84,9 @@ def new_account():
         if not account_id:
             flash("Failed to create account", "error")
             return render_template('account_form.html', title="New Account", 
-                                 account=request.form, connection=request.form, is_new=True)
+                                 account=request.form, connection={}, is_new=True)
         
-        # Create the connection settings
-        success = set_connection_config(
-            server=server,
-            port=port,
-            account_id=account_id
-        )
-        
-        if not success:
-            flash("Account created but failed to save connection settings", "warning")
-        else:
-            flash(f"Account '{name}' created successfully", "success")
-        
+        flash(f"Account '{name}' created successfully", "success")
         return redirect(url_for('view_account', account_id=account_id))
     
     # GET request - show the form
@@ -106,10 +101,6 @@ def edit_account(account_id):
         flash(f"Account with ID {account_id} not found", "error")
         return redirect(url_for('index'))
     
-    connection = get_connection_config(account_id=account_id)
-    if not connection:
-        connection = {'server': 'lightbringer.furcadia.com', 'port': 6500}
-    
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
         email = request.form.get('email', '').strip()
@@ -118,18 +109,12 @@ def edit_account(account_id):
         colors = request.form.get('colors', '').strip() or "nynn"
         description = request.form.get('description', '').strip()
         owner = request.form.get('owner', '').strip()
-        server = request.form.get('server', '').strip() or "lightbringer.furcadia.com"
-        
-        try:
-            port = int(request.form.get('port', '6500'))
-        except ValueError:
-            port = 6500
         
         # Validate required fields
         if not all([name, email, character]):
             flash("Name, email, and character are required fields", "error")
             return render_template('account_form.html', title=f"Edit Account: {account['name']}", 
-                                  account=request.form, connection=request.form)
+                                  account=request.form, connection={})
         
         # Check if the name is being changed and if it conflicts with another account
         if name != account['name']:
@@ -137,7 +122,7 @@ def edit_account(account_id):
             if existing and existing['id'] != account_id:
                 flash(f"Account with name '{name}' already exists", "error")
                 return render_template('account_form.html', title=f"Edit Account: {account['name']}", 
-                                     account=request.form, connection=request.form)
+                                     account=request.form, connection={})
         
         # Update the account
         updated_id = set_account(
@@ -154,25 +139,14 @@ def edit_account(account_id):
         if not updated_id:
             flash("Failed to update account", "error")
             return render_template('account_form.html', title=f"Edit Account: {account['name']}", 
-                                 account=request.form, connection=request.form)
+                                 account=request.form, connection={})
         
-        # Update the connection settings
-        success = set_connection_config(
-            server=server,
-            port=port,
-            account_id=account_id
-        )
-        
-        if not success:
-            flash("Account updated but failed to save connection settings", "warning")
-        else:
-            flash(f"Account '{name}' updated successfully", "success")
-        
+        flash(f"Account '{name}' updated successfully", "success")
         return redirect(url_for('view_account', account_id=account_id))
     
     # GET request - show the form with current values
     return render_template('account_form.html', title=f"Edit Account: {account['name']}", 
-                         account=account, connection=connection)
+                         account=account, connection={})
 
 @app.route('/accounts/<int:account_id>/delete', methods=['POST'])
 def delete_account_route(account_id):

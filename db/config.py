@@ -97,7 +97,7 @@ def list_accounts():
     conn = get_connection()
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT id, name, character FROM account ORDER BY id")
+        cursor.execute("SELECT id, name, email, character, owner, colors FROM account ORDER BY id")
         accounts = [dict(row) for row in cursor.fetchall()]
         return accounts
     finally:

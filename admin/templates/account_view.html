@@ -12,53 +12,32 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Account Information -->
-        <div class="space-y-4">
-            <h2 class="text-xl font-semibold text-gray-300">Account Information</h2>
-            
-            <div class="bg-dark-300 p-4 rounded">
-                <dl class="space-y-4">
-                    <div>
-                        <dt class="text-sm font-medium text-gray-400">Email</dt>
-                        <dd class="mt-1 text-gray-100">{{ account.email }}</dd>
-                    </div>
-                    
-                    <div>
-                        <dt class="text-sm font-medium text-gray-400">Owner</dt>
-                        <dd class="mt-1 text-gray-100">{{ account.owner or 'Not set' }}</dd>
-                    </div>
-                    
-                    <div>
-                        <dt class="text-sm font-medium text-gray-400">Character</dt>
-                        <dd class="mt-1 text-gray-100">{{ account.character }}</dd>
-                    </div>
-                    
-                    <div>
-                        <dt class="text-sm font-medium text-gray-400">Colors</dt>
-                        <dd class="mt-1 text-gray-100">{{ account.colors or 'Not set' }}</dd>
-                    </div>
-                </dl>
-            </div>
-        </div>
+    <!-- Account Information -->
+    <div class="space-y-4">
+        <h2 class="text-xl font-semibold text-gray-300">Account Information</h2>
         
-        <!-- Connection Settings -->
-        <div class="space-y-4">
-            <h2 class="text-xl font-semibold text-gray-300">Connection Settings</h2>
-            
-            <div class="bg-dark-300 p-4 rounded">
-                <dl class="space-y-4">
-                    <div>
-                        <dt class="text-sm font-medium text-gray-400">Server</dt>
-                        <dd class="mt-1 text-gray-100">{{ account.connection.server if account.connection else 'Not set' }}</dd>
-                    </div>
-                    
-                    <div>
-                        <dt class="text-sm font-medium text-gray-400">Port</dt>
-                        <dd class="mt-1 text-gray-100">{{ account.connection.port if account.connection else 'Not set' }}</dd>
-                    </div>
-                </dl>
-            </div>
+        <div class="bg-dark-300 p-4 rounded">
+            <dl class="space-y-4">
+                <div>
+                    <dt class="text-sm font-medium text-gray-400">Email</dt>
+                    <dd class="mt-1 text-gray-100">{{ account.email }}</dd>
+                </div>
+                
+                <div>
+                    <dt class="text-sm font-medium text-gray-400">Owner</dt>
+                    <dd class="mt-1 text-gray-100">{{ account.owner or 'Not set' }}</dd>
+                </div>
+                
+                <div>
+                    <dt class="text-sm font-medium text-gray-400">Character</dt>
+                    <dd class="mt-1 text-gray-100">{{ account.character }}</dd>
+                </div>
+                
+                <div>
+                    <dt class="text-sm font-medium text-gray-400">Colors</dt>
+                    <dd class="mt-1 text-gray-100">{{ account.colors or 'Not set' }}</dd>
+                </div>
+            </dl>
         </div>
     </div>
     

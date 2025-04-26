@@ -27,6 +27,9 @@
                     <th class="py-2 px-4 border-b border-dark-400 bg-dark-300 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
                         Owner
                     </th>
+                    <th class="py-2 px-4 border-b border-dark-400 bg-dark-300 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                        Colors
+                    </th>
                     <th class="py-2 px-4 border-b border-dark-400 bg-dark-300 text-xs font-semibold text-gray-300 uppercase tracking-wider">
                         Actions
                     </th>
@@ -40,6 +43,7 @@
                             <td class="py-2 px-4 border-b border-dark-400">{{ account.email }}</td>
                             <td class="py-2 px-4 border-b border-dark-400">{{ account.character }}</td>
                             <td class="py-2 px-4 border-b border-dark-400">{{ account.owner }}</td>
+                            <td class="py-2 px-4 border-b border-dark-400">{{ account.colors }}</td>
                             <td class="py-2 px-4 border-b border-dark-400 text-right">
                                 <a href="{{ url_for('view_account', account_id=account.id) }}" class="text-purple-400 hover:text-purple-300 mr-2">View</a>
                                 <a href="{{ url_for('edit_account', account_id=account.id) }}" class="text-purple-400 hover:text-purple-300 mr-2">Edit</a>

@@ -49,21 +49,9 @@
                 </div>
             </div>
             
-            <!-- Connection Settings -->
+            <!-- Description -->
             <div class="space-y-4">
-                <h2 class="text-xl font-semibold text-gray-300">Connection Settings</h2>
-                
-                <div>
-                    <label for="server" class="block text-sm font-medium text-gray-300">Server</label>
-                    <input type="text" name="server" id="server" value="{{ account.connection.server if account and account.connection else '' }}" 
-                           class="mt-1 block w-full rounded-md bg-dark-300 border-dark-400 text-gray-100 shadow-sm focus:border-purple-500 focus:ring-purple-500">
-                </div>
-                
-                <div>
-                    <label for="port" class="block text-sm font-medium text-gray-300">Port</label>
-                    <input type="number" name="port" id="port" value="{{ account.connection.port if account and account.connection else '' }}" 
-                           class="mt-1 block w-full rounded-md bg-dark-300 border-dark-400 text-gray-100 shadow-sm focus:border-purple-500 focus:ring-purple-500">
-                </div>
+                <h2 class="text-xl font-semibold text-gray-300">Description</h2>
                 
                 <div>
                     <label for="description" class="block text-sm font-medium text-gray-300">Description</label>
