@@ -87,9 +87,24 @@ class KiwiBot:
                 logging.error('Server or port not configured')
                 raise ValueError('Server configuration missing')
                 
-            self.reader, self.writer = await asyncio.open_connection(server, port)
-            self.connected = True
-            logging.info('Connected to server')
+            # Connect using asyncio's high-level API with timeout
+            try:
+                self.reader, self.writer = await asyncio.wait_for(
+                    asyncio.open_connection(server, port),
+                    timeout=10.0  # 10 second timeout
+                )
+                self.connected = True
+                logging.info(f'Connected to {server}:{port}')
+            except asyncio.TimeoutError:
+                logging.error(f'Connection timed out after 10 seconds')
+                raise ValueError('Connection timed out - server may be down or unreachable')
+            except ConnectionRefusedError:
+                logging.error('Connection refused - server may be down or port blocked')
+                raise ValueError('Connection refused - check if server is running and port is open')
+            except Exception as e:
+                logging.error(f'Connection failed: {e}')
+                raise
+                
         except Exception as e:
             logging.error(f'Connection failed: {e}')
             raise

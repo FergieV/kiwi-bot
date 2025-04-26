@@ -198,22 +198,14 @@ def delete_account(account_id=None, name=None):
 # Connection configuration functions
 def get_connection_config(conn_id=None, account_id=None, account_name=None):
     """Get connection configuration"""
-    if account_name is not None:
-        # Get account ID from name
-        account = get_account(name=account_name)
-        if account:
-            account_id = account['id']
-    
     conn = get_connection()
     try:
         cursor = conn.cursor()
         
         if conn_id is not None:
             cursor.execute("SELECT * FROM connection WHERE id = ?", (conn_id,))
-        elif account_id is not None:
-            cursor.execute("SELECT * FROM connection WHERE account_id = ?", (account_id,))
         else:
-            # Default to first connection
+            # Always get the first connection regardless of account
             cursor.execute("SELECT * FROM connection LIMIT 1")
             
         row = cursor.fetchone()
